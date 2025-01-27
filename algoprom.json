@@ -1,5 +1,20 @@
 {
-	"datasources": [],
+	"datasources": [
+		{
+			"name": "sample",
+			"url": "http://demo.robustperception.io:9090"
+		}
+	],
+	"base_working_dir": "/home/tchaudhry/Temp/",
 	"algorithms": "",
-	"measurements": []
+	"measurements": [
+		{
+			"name": "Testing Measures",
+			"datasource": "sample",
+			"interval": "10s",
+			"query": "increase(prometheus_tsdb_head_samples_appended_total[15m])",
+			"debug": true,
+			"immediate": true
+		}
+	]
 }
