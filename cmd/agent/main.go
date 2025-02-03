@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/tchaudhry91/algoprom/measure"
+	"github.com/tchaudhry91/algoprom/algochecks"
 )
 
 var header = `
@@ -65,23 +65,27 @@ func run(conf *Config, logger *log.Logger) {
 		http.ListenAndServe(addr, nil)
 	}(addr)
 
-	for _, m := range conf.Measurements {
-		ticker := time.NewTicker(m.Interval.Duration)
+	for _, c := range conf.Checks {
+		ticker := time.NewTicker(c.Interval.Duration)
 		tickers = append(tickers, ticker)
-		logger.Printf("Starting Measurement: %s with interval:%s", m.Name, m.Interval.Duration)
-		go func(m *measure.Measurement) {
-			if m.Immediate {
-				runMeasure(m, conf, logger)
+		logger.Printf("Starting Check: %s with interval:%s", c.Name, c.Interval.Duration)
+		go func(c *algochecks.Check) {
+			if c.Immediate {
+				err := runCheck(c, conf, logger)
+				if err != nil {
+					logger.Printf("Error in Check %s : %v", c.Name, err)
+				}
 			}
 			for {
 				select {
 				case <-done:
 					return
 				case <-ticker.C:
-					runMeasure(m, conf, logger)
+					err := runCheck(c, conf, logger)
+					logger.Printf("Error in Check %s : %v", c.Name, err)
 				}
 			}
-		}(&m)
+		}(&c)
 	}
 
 	select {
@@ -100,41 +104,41 @@ func run(conf *Config, logger *log.Logger) {
 
 }
 
-func runMeasure(m *measure.Measurement, conf *Config, logger *log.Logger) error {
-	datasourceURL := ""
-	for _, d := range conf.Datasources {
-		if d.Name == m.Datasource {
-			datasourceURL = d.URL
+func runCheck(c *algochecks.Check, conf *Config, logger *log.Logger) error {
+	var algorithmer algochecks.Algorithmer
+	for _, aa := range conf.Algorithmers {
+		if aa.Type == c.AlgorithmerType {
+			algorithmer = algochecks.Build(aa.Type, aa.Params)
 		}
 	}
-	if datasourceURL == "" {
-		return fmt.Errorf("Datasource Not Found:%s", m.Name)
+	if algorithmer == nil {
+		return fmt.Errorf("Algorithmer Not Found:%s", c.AlgorithmerType)
 	}
 
-	processed := countProcessed.WithLabelValues(m.Name)
-	succeeded := countSuccess.WithLabelValues(m.Name)
-	failed := countFail.WithLabelValues(m.Name)
+	processed := countProcessed.WithLabelValues(c.Name)
+	succeeded := countSuccess.WithLabelValues(c.Name)
+	failed := countFail.WithLabelValues(c.Name)
 	defer processed.Inc()
 
-	tempWorkDir, err := os.MkdirTemp(conf.BaseWorkingDir, m.Name+"-")
+	tempWorkDir, err := os.MkdirTemp(conf.BaseWorkingDir, c.Name+"-")
 	if err != nil {
-		logger.Printf("Unable to create Temp Dir: %v", err)
+		logger.Printf("Unable to create Temp Dir for check %s: %v", c.Name, err)
 		failed.Inc()
 		return err
 	}
 
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
-	contexts[m.Name] = &cancel
-	err = m.Measure(ctx, logger, datasourceURL, tempWorkDir)
+	contexts[c.Name] = &cancel
+	err = algorithmer.ApplyAlgorithm(c.Algorithm, c.AlgorithmParams, c.Inputs, tempWorkDir)
 
 	if err != nil {
 		failed.Inc()
-		logger.Printf("%s measurement failed: %v", m.Name, err)
+		logger.Printf("%s check failed: %v", c.Name, err)
 		return err
 
 	}
-	logger.Printf("%s measurement exited", m.Name)
+	logger.Printf("%s check exited", c.Name)
 	succeeded.Inc()
 	return nil
 }

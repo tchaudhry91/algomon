@@ -8,21 +8,15 @@ import (
 	"github.com/prometheus/client_golang/api"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
-	"github.com/tchaudhry91/algoprom/alerts"
 )
 
 type Measurement struct {
-	Name          string           `json:"name"`
-	Datasource    string           `json:"datasource"`
-	Interval      Duration         `json:"interval"`
-	Query         string           `json:"query"`
-	Algorithms    []string         `json:"algorithms"`
-	AlertChannels []alerts.Alerter `json:"alert_channels"`
-	Immediate     bool             `json:"immediate"`
-	Debug         bool             `json:"debug"`
+	Name       string `json:"name"`
+	Datasource string `json:"datasource"`
+	Query      string `json:"query"`
 }
 
-func (m *Measurement) Measure(ctx context.Context, logger *log.Logger, datasourceURL, tempWorkDir string) error {
+func (m *Measurement) Measure(ctx context.Context, logger *log.Logger, datasourceURL string) error {
 	apiClient, err := getPromAPIClient(datasourceURL)
 	if err != nil {
 		return err
