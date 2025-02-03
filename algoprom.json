@@ -30,7 +30,7 @@
 					"datasource": "sample",
 					"query": "sum(increase(caddy_http_requests_total[5m]))"
 				},
-				{
+				{k
 					"name": "previous",
 					"datasource": "sample",
 					"query": "sum(increase(caddy_http_requests_total[5m])) offset 1w"
