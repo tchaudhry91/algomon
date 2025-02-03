@@ -10,7 +10,7 @@ def main(args):
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("inputs", required=True)
-    parser.add_argument("params", required=True)
+    parser.add_argument("--inputs", required=True)
+    parser.add_argument("--params", required=True)
     args = parser.parse_args()
     main(args)

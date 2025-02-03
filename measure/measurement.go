@@ -2,7 +2,6 @@ package measure
 
 import (
 	"context"
-	"log"
 	"time"
 
 	"github.com/prometheus/client_golang/api"
@@ -16,23 +15,24 @@ type Measurement struct {
 	Query      string `json:"query"`
 }
 
-func (m *Measurement) Measure(ctx context.Context, logger *log.Logger, datasourceURL string) error {
-	apiClient, err := getPromAPIClient(datasourceURL)
+func (m *Measurement) Measure(ctx context.Context) (map[string]string, error) {
+	apiClient, err := getPromAPIClient(m.Datasource)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	res, _, err := apiClient.Query(ctx, m.Query, time.Now())
 	if err != nil {
-		return err
+		return nil, err
 	}
+	results := map[string]string{}
 	switch res.Type() {
 	case model.ValVector:
 		vector := res.(model.Vector)
 		for _, sample := range vector {
-			logger.Printf("%s-%s", sample.Metric, sample.Value)
+			results[sample.Metric.String()] = sample.Value.String()
 		}
 	}
-	return nil
+	return results, nil
 }
 
 func getPromAPIClient(datasourceURL string) (v1.API, error) {

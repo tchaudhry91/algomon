@@ -130,7 +130,10 @@ func runCheck(c *algochecks.Check, conf *Config, logger *log.Logger) error {
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
 	contexts[c.Name] = &cancel
-	err = algorithmer.ApplyAlgorithm(ctx, c.Algorithm, c.AlgorithmParams, c.Inputs, tempWorkDir)
+
+	// Fetch inputs
+
+	_, err = algorithmer.ApplyAlgorithm(ctx, c.Algorithm, c.AlgorithmParams, c.Inputs, tempWorkDir)
 
 	if err != nil {
 		failed.Inc()
