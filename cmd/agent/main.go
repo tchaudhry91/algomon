@@ -108,7 +108,7 @@ func runCheck(c *algochecks.Check, conf *Config, logger *log.Logger) error {
 	var algorithmer algochecks.Algorithmer
 	for _, aa := range conf.Algorithmers {
 		if aa.Type == c.AlgorithmerType {
-			algorithmer = algochecks.Build(aa.Type, aa.Params)
+			algorithmer = algochecks.Build(aa.Type, aa.Params, logger)
 		}
 	}
 	if algorithmer == nil {
@@ -130,7 +130,7 @@ func runCheck(c *algochecks.Check, conf *Config, logger *log.Logger) error {
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
 	contexts[c.Name] = &cancel
-	err = algorithmer.ApplyAlgorithm(c.Algorithm, c.AlgorithmParams, c.Inputs, tempWorkDir)
+	err = algorithmer.ApplyAlgorithm(ctx, c.Algorithm, c.AlgorithmParams, c.Inputs, tempWorkDir)
 
 	if err != nil {
 		failed.Inc()
