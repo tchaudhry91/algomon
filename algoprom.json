@@ -36,7 +36,7 @@
 					"query": "sum(increase(caddy_http_requests_total[5m] offset 1w))"
 				}
 			],
-			"interval": "2m"
+			"interval": "10s"
 		}
 	]
 }
