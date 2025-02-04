@@ -21,7 +21,7 @@ type AlgorithmerMeta struct {
 }
 
 type Algorithmer interface {
-	ApplyAlgorithm(ctx context.Context, algorithm string, algorithmParams map[string]string, inputs []measure.Measurement, workingDir string) (Output, error)
+	ApplyAlgorithm(ctx context.Context, algorithm string, algorithmParams map[string]string, inputs map[string]measure.Result, workingDir string) (Output, error)
 }
 
 func Build(aType string, params map[string]string, logger *log.Logger) Algorithmer {

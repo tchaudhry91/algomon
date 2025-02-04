@@ -14,6 +14,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/tchaudhry91/algoprom/algochecks"
+	"github.com/tchaudhry91/algoprom/measure"
 )
 
 var header = `
@@ -122,18 +123,39 @@ func runCheck(c *algochecks.Check, conf *Config, logger *log.Logger) error {
 
 	tempWorkDir, err := os.MkdirTemp(conf.BaseWorkingDir, c.Name+"-")
 	if err != nil {
-		logger.Printf("Unable to create Temp Dir for check %s: %v", c.Name, err)
 		failed.Inc()
-		return err
+		return fmt.Errorf("Unable to create Temp Dir for check %s: %v", c.Name, err)
 	}
+	defer os.RemoveAll(tempWorkDir)
 
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
 	contexts[c.Name] = &cancel
 
 	// Fetch inputs
+	inputs := map[string]measure.Result{}
+	for _, i := range c.Inputs {
+		d := fetchDatasourceByName(conf, i.Datasource)
+		if d == nil {
+			failed.Inc()
+			return fmt.Errorf("Datasource Not Found: %s", i.Datasource)
+		}
+		api, err := measure.GetPromAPIClient(d.URL)
+		if err != nil {
+			failed.Inc()
+			return fmt.Errorf("Failed to create Prom API Client: %v", err)
+		}
+		res, err := i.MeasureProm(ctx, api)
+		if err != nil {
+			failed.Inc()
+			return fmt.Errorf("Failed to measure prometheus query: %v", err)
+		}
+		inputs[i.Name] = res
+	}
 
-	_, err = algorithmer.ApplyAlgorithm(ctx, c.Algorithm, c.AlgorithmParams, c.Inputs, tempWorkDir)
+	output, err := algorithmer.ApplyAlgorithm(ctx, c.Algorithm, c.AlgorithmParams, inputs, tempWorkDir)
+
+	logger.Println(output)
 
 	if err != nil {
 		failed.Inc()

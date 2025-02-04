@@ -15,16 +15,14 @@ type Measurement struct {
 	Query      string `json:"query"`
 }
 
-func (m *Measurement) Measure(ctx context.Context) (map[string]string, error) {
-	apiClient, err := getPromAPIClient(m.Datasource)
-	if err != nil {
-		return nil, err
-	}
+type Result map[string]string
+
+func (m *Measurement) MeasureProm(ctx context.Context, apiClient v1.API) (Result, error) {
 	res, _, err := apiClient.Query(ctx, m.Query, time.Now())
 	if err != nil {
 		return nil, err
 	}
-	results := map[string]string{}
+	results := Result{}
 	switch res.Type() {
 	case model.ValVector:
 		vector := res.(model.Vector)
@@ -35,7 +33,7 @@ func (m *Measurement) Measure(ctx context.Context) (map[string]string, error) {
 	return results, nil
 }
 
-func getPromAPIClient(datasourceURL string) (v1.API, error) {
+func GetPromAPIClient(datasourceURL string) (v1.API, error) {
 	client, err := api.NewClient(api.Config{Address: datasourceURL})
 	if err != nil {
 		return nil, err

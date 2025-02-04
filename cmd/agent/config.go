@@ -16,3 +16,12 @@ type Config struct {
 	MetricsListenAddr string                       `json:"metrics_listen_addr"`
 	BaseWorkingDir    string                       `json:"base_working_dir"`
 }
+
+func fetchDatasourceByName(c *Config, name string) *Datasource {
+	for _, d := range c.Datasources {
+		if d.Name == name {
+			return &d
+		}
+	}
+	return nil
+}

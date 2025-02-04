@@ -3,8 +3,10 @@ import argparse
 import json
 
 def main(args):
-    inputs = json.load(args.inputs)
-    params = json.load(args.params)
+    with open(args.inputs, "r") as inputsF:
+        inputs = json.load(inputsF)
+    with open(args.params, "r") as paramsF:
+        params = json.load(paramsF)
     print(inputs)
     print(params)
 

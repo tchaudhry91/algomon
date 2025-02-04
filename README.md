@@ -1,2 +1,2 @@
-# algoprom
+# AlgoProm
 Algorithmic Prometheus Alerting
