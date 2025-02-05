@@ -12,6 +12,9 @@
 			"params": {
 				"venv": "/home/tchaudhry/.venvs/prom",
 				"directory": "/home/tchaudhry/Workspace/algoprom/algorithms/python"
+			},
+			"env_override": {
+				"ENVIRONMENT": "QA"
 			}
 		}
 	],
@@ -36,7 +39,7 @@
 					"query": "sum(increase(caddy_http_requests_total[5m] offset 1w))"
 				}
 			],
-			"interval": "10s"
+			"interval": "2m"
 		}
 	]
 }

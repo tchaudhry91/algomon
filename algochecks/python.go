@@ -15,9 +15,10 @@ import (
 
 // Basic Python Algorithm Apply
 type PythonAlgorithmer struct {
-	VEnv      string `json:"venv"`
-	Directory string `json:"directory"`
-	logger    *log.Logger
+	VEnv        string            `json:"venv"`
+	Directory   string            `json:"directory"`
+	EnvOverride map[string]string `json:"envoverride"`
+	logger      *log.Logger
 }
 
 func (pa *PythonAlgorithmer) ApplyAlgorithm(ctx context.Context, algorithm string, algorithmParams map[string]string, inputs map[string]measure.Result, workingDir string) (Output, error) {
@@ -54,6 +55,7 @@ func (pa *PythonAlgorithmer) ApplyAlgorithm(ctx context.Context, algorithm strin
 	cmdWrap = append(cmdWrap, pythonCmd)
 	cmd := exec.CommandContext(ctx, "sh", cmdWrap...)
 	cmd.Dir = workingDir
+	cmd.Env = append(cmd.Env, envMapToSlice(pa.EnvOverride)...)
 
 	combined, err := cmd.CombinedOutput()
 	if err != nil {
@@ -66,4 +68,12 @@ func (pa *PythonAlgorithmer) ApplyAlgorithm(ctx context.Context, algorithm strin
 	out.CombinedOut = string(combined)
 
 	return out, nil
+}
+
+func envMapToSlice(env map[string]string) []string {
+	envs := []string{}
+	for k, v := range env {
+		envs = append(envs, fmt.Sprintf("%s=%s", k, v))
+	}
+	return envs
 }

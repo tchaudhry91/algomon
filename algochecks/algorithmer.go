@@ -16,20 +16,22 @@ type Output struct {
 }
 
 type AlgorithmerMeta struct {
-	Type   string            `json:"type"`
-	Params map[string]string `json:"params"`
+	Type        string            `json:"type"`
+	Params      map[string]string `json:"params"`
+	EnvOverride map[string]string `json:"env_override"`
 }
 
 type Algorithmer interface {
 	ApplyAlgorithm(ctx context.Context, algorithm string, algorithmParams map[string]string, inputs map[string]measure.Result, workingDir string) (Output, error)
 }
 
-func Build(aType string, params map[string]string, logger *log.Logger) Algorithmer {
-	if aType == "python" {
+func Build(meta AlgorithmerMeta, logger *log.Logger) Algorithmer {
+	if meta.Type == "python" {
 		return &PythonAlgorithmer{
-			VEnv:      params["venv"],
-			Directory: params["directory"],
-			logger:    logger,
+			VEnv:        meta.Params["venv"],
+			Directory:   meta.Params["directory"],
+			EnvOverride: meta.EnvOverride,
+			logger:      logger,
 		}
 	}
 	return nil

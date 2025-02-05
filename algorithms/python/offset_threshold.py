@@ -3,6 +3,7 @@
 import argparse
 import json
 import sys
+import os
 
 
 def applyAlgorithm(inputs, params):
@@ -17,6 +18,7 @@ def applyAlgorithm(inputs, params):
     """
     output = {
         "violations": [],
+        "environment": os.environ['ENVIRONMENT'],
         "error": None
     }
     current = inputs.get("current")

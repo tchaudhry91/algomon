@@ -109,7 +109,7 @@ func runCheck(c *algochecks.Check, conf *Config, logger *log.Logger) error {
 	var algorithmer algochecks.Algorithmer
 	for _, aa := range conf.Algorithmers {
 		if aa.Type == c.AlgorithmerType {
-			algorithmer = algochecks.Build(aa.Type, aa.Params, logger)
+			algorithmer = algochecks.Build(aa, logger)
 		}
 	}
 	if algorithmer == nil {
@@ -157,12 +157,15 @@ func runCheck(c *algochecks.Check, conf *Config, logger *log.Logger) error {
 
 	logger.Println(output)
 
-	if err != nil {
+	if err != nil || output.RC != 0 {
 		failed.Inc()
-		logger.Printf("%s check failed: %v", c.Name, err)
+		logger.Printf("%s check failed: %v, RC:%d", c.Name, err, output.RC)
+		logger.Printf("Dispatching Actions for Check: %s", c.Name)
+		// TO-DO: Dispatch Actions
 		return err
 
 	}
+
 	logger.Printf("%s check exited", c.Name)
 	succeeded.Inc()
 	return nil
