@@ -21,6 +21,7 @@ type ActionerMeta struct {
 
 type ActionMeta struct {
 	Name     string            `json:"name"`
+	Action   string            `json:"action"`
 	Actioner string            `json:"actioner"`
 	Params   map[string]string `json:"params"`
 }

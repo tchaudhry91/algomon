@@ -51,14 +51,16 @@
 			"interval": "2m",
 			"actions": [
 				{
-					"name": "alert_teams",
+					"name": "Alert Teams 1",
+					"action": "alert_teams",
 					"actioner": "python",
 					"params": {
 						"channel": "testing-algoprom"
 					}
 				},
 				{
-					"name": "alert_teams",
+					"name": "Alert Teams 2",
+					"action": "alert_teams",
 					"actioner": "python",
 					"params": {
 						"channel": "testing-algoprom-2"

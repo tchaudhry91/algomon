@@ -173,11 +173,11 @@ func runCheck(c *algochecks.Check, conf *Config, logger *log.Logger) error {
 	if err != nil || output.RC != 0 {
 		failed.Inc()
 		logger.Printf("%s check failed: %v, RC:%d", c.Name, err, output.RC)
-		logger.Printf("Dispatching Actions for %s", c.Name)
 
 		for _, a := range c.Actions {
 			actioner := getActioner(&a, conf, logger)
-			_, err := actioner.Action(ctx, a.Name, output.CombinedOut, a.Params, tempWorkDir)
+			logger.Printf("Dispatching Action:%s for %s", a.Name, c.Name)
+			_, err := actioner.Action(ctx, a.Action, output.CombinedOut, a.Params, tempWorkDir)
 			if err != nil {
 				logger.Printf("%s Action Failed for Check: %s with error:%v", a.Name, c.Name, err)
 			}
