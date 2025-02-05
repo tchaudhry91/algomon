@@ -19,8 +19,14 @@ type ActionerMeta struct {
 	EnvOverride map[string]string `json:"env_override"`
 }
 
+type ActionMeta struct {
+	Name     string            `json:"name"`
+	Actioner string            `json:"actioner"`
+	Params   map[string]string `json:"params"`
+}
+
 type Actioner interface {
-	Action(ctx context.Context, action string, params map[string]string) (Output, error)
+	Action(ctx context.Context, action string, input string, params map[string]string, workingDir string) (Output, error)
 }
 
 func Build(meta ActionerMeta, logger *log.Logger) Actioner {

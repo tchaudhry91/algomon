@@ -55,6 +55,7 @@ func (pa *PythonAlgorithmer) ApplyAlgorithm(ctx context.Context, algorithm strin
 	cmdWrap = append(cmdWrap, pythonCmd)
 	cmd := exec.CommandContext(ctx, "sh", cmdWrap...)
 	cmd.Dir = workingDir
+	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, envMapToSlice(pa.EnvOverride)...)
 
 	combined, err := cmd.CombinedOutput()
@@ -67,7 +68,7 @@ func (pa *PythonAlgorithmer) ApplyAlgorithm(ctx context.Context, algorithm strin
 	out.RC = cmd.ProcessState.ExitCode()
 	out.CombinedOut = string(combined)
 
-	return out, nil
+	return out, err
 }
 
 func envMapToSlice(env map[string]string) []string {

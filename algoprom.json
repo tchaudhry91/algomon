@@ -11,10 +11,19 @@
 			"type": "python",
 			"params": {
 				"venv": "/home/tchaudhry/.venvs/prom",
-				"directory": "/home/tchaudhry/Workspace/algoprom/algorithms/python"
+				"directory": "/home/tchaudhry/Workspace/algoprom/scripts/algorithms/python"
 			},
 			"env_override": {
 				"ENVIRONMENT": "QA"
+			}
+		}
+	],
+	"actioners": [
+		{
+			"type": "python",
+			"params": {
+				"venv": "/home/tchaudhry/.venvs/prom",
+				"directory": "/home/tchaudhry/Workspace/algoprom/scripts/actions/python"
 			}
 		}
 	],
@@ -25,7 +34,7 @@
 			"algorithmer_type": "python",
 			"algorithm": "offset_threshold",
 			"algorithm_params": {
-				"threshold": "20"
+				"threshold": "10"
 			},
 			"inputs": [
 				{
@@ -39,7 +48,23 @@
 					"query": "sum(increase(caddy_http_requests_total[5m] offset 1w))"
 				}
 			],
-			"interval": "2m"
+			"interval": "2m",
+			"actions": [
+				{
+					"name": "alert_teams",
+					"actioner": "python",
+					"params": {
+						"channel": "testing-algoprom"
+					}
+				},
+				{
+					"name": "alert_teams",
+					"actioner": "python",
+					"params": {
+						"channel": "testing-algoprom-2"
+					}
+				}
+			]
 		}
 	]
 }

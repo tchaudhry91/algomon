@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/tchaudhry91/algoprom/actions"
 	"github.com/tchaudhry91/algoprom/algochecks"
 	"github.com/tchaudhry91/algoprom/measure"
 )
@@ -74,7 +75,7 @@ func run(conf *Config, logger *log.Logger) {
 			if c.Immediate {
 				err := runCheck(c, conf, logger)
 				if err != nil {
-					logger.Printf("Error in Check %s : %v", c.Name, err)
+					logger.Printf("Error in Check: %s : %v", c.Name, err)
 				}
 			}
 			for {
@@ -83,7 +84,7 @@ func run(conf *Config, logger *log.Logger) {
 					return
 				case <-ticker.C:
 					err := runCheck(c, conf, logger)
-					logger.Printf("Error in Check %s : %v", c.Name, err)
+					logger.Printf("Error in Check: %s : %v", c.Name, err)
 				}
 			}
 		}(&c)
@@ -105,15 +106,31 @@ func run(conf *Config, logger *log.Logger) {
 
 }
 
-func runCheck(c *algochecks.Check, conf *Config, logger *log.Logger) error {
+func getAlgorithmer(c *algochecks.Check, conf *Config, logger *log.Logger) algochecks.Algorithmer {
 	var algorithmer algochecks.Algorithmer
 	for _, aa := range conf.Algorithmers {
 		if aa.Type == c.AlgorithmerType {
 			algorithmer = algochecks.Build(aa, logger)
 		}
 	}
+	return algorithmer
+}
+
+func getActioner(a *actions.ActionMeta, conf *Config, logger *log.Logger) actions.Actioner {
+	var actioner actions.Actioner
+	for _, aa := range conf.Actioners {
+		if aa.Type == a.Actioner {
+			actioner = actions.Build(aa, logger)
+		}
+	}
+	return actioner
+}
+
+func runCheck(c *algochecks.Check, conf *Config, logger *log.Logger) error {
+
+	algorithmer := getAlgorithmer(c, conf, logger)
 	if algorithmer == nil {
-		return fmt.Errorf("Algorithmer Not Found:%s", c.AlgorithmerType)
+		return fmt.Errorf("AlgorithmerType:%s not found for check:%s", c.AlgorithmerType, c.Name)
 	}
 
 	processed := countProcessed.WithLabelValues(c.Name)
@@ -152,19 +169,23 @@ func runCheck(c *algochecks.Check, conf *Config, logger *log.Logger) error {
 		}
 		inputs[i.Name] = res
 	}
-
 	output, err := algorithmer.ApplyAlgorithm(ctx, c.Algorithm, c.AlgorithmParams, inputs, tempWorkDir)
-
 	if err != nil || output.RC != 0 {
 		failed.Inc()
 		logger.Printf("%s check failed: %v, RC:%d", c.Name, err, output.RC)
-		logger.Printf("Dispatching Actions for Check: %s", c.Name)
-		// TO-DO: Dispatch Actions
-		return err
+		logger.Printf("Dispatching Actions for %s", c.Name)
 
+		for _, a := range c.Actions {
+			actioner := getActioner(&a, conf, logger)
+			_, err := actioner.Action(ctx, a.Name, output.CombinedOut, a.Params, tempWorkDir)
+			if err != nil {
+				logger.Printf("%s Action Failed for Check: %s with error:%v", a.Name, c.Name, err)
+			}
+		}
+		return err
 	}
 
-	logger.Printf("%s check exited", c.Name)
+	logger.Printf("%s check exited successfully", c.Name)
 	succeeded.Inc()
 	return nil
 }

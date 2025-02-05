@@ -11,7 +11,7 @@ type Check struct {
 	AlgorithmerType string                `json:"algorithmer_type"`
 	Algorithm       string                `json:"algorithm"`
 	AlgorithmParams map[string]string     `json:"algorithm_params"`
-	Actions         []actions.Actioner    `json:"actions"`
+	Actions         []actions.ActionMeta  `json:"actions"`
 	Interval        measure.Duration      `json:"interval"`
 	Immediate       bool                  `json:"immediate"`
 }

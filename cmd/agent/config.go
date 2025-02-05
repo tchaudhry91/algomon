@@ -13,7 +13,7 @@ type Datasource struct {
 type Config struct {
 	Datasources       []Datasource                 `json:"datasources"`
 	Algorithmers      []algochecks.AlgorithmerMeta `json:"algorithmers"`
-	Actioners         []actions.Actioner           `json:"actioners"`
+	Actioners         []actions.ActionerMeta       `json:"actioners"`
 	Checks            []algochecks.Check           `json:"checks"`
 	MetricsListenAddr string                       `json:"metrics_listen_addr"`
 	BaseWorkingDir    string                       `json:"base_working_dir"`
