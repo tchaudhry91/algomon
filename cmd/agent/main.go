@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
 	"os/signal"
@@ -84,13 +85,19 @@ func run(conf *Config, logger *log.Logger) {
 					logger.Printf("Error in Check: %s : %v", c.Name, err)
 				}
 			}
+			// Add a little bit of random starting delay to stagger checks
+			staggerSeconds := rand.Intn(int(c.Interval.Duration.Seconds()))
+			logger.Printf("Adding Initial Stager of %d seconds", staggerSeconds)
+			time.Sleep(time.Duration(staggerSeconds) * time.Second)
 			for {
 				select {
 				case <-done:
 					return
 				case <-ticker.C:
 					err := runCheck(c, conf, logger, s)
-					logger.Printf("Error in Check: %s : %v", c.Name, err)
+					if err != nil {
+						logger.Printf("Error in Check: %s : %v", c.Name, err)
+					}
 				}
 			}
 		}(&c)

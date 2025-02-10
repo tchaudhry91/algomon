@@ -72,7 +72,6 @@
 		},
 		{
 			"name": "Sample HTTP Check - 2",
-			"immediate": true,
 			"debug": true,
 			"algorithmer_type": "python",
 			"algorithm": "offset_threshold",
