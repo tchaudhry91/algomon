@@ -16,6 +16,7 @@ import (
 	"github.com/tchaudhry91/algoprom/actions"
 	"github.com/tchaudhry91/algoprom/algochecks"
 	"github.com/tchaudhry91/algoprom/measure"
+	"github.com/tchaudhry91/algoprom/store"
 )
 
 var header = `
@@ -61,6 +62,11 @@ func run(conf *Config, logger *log.Logger) {
 		addr = "127.0.0.1:9967"
 	}
 
+	s, err := store.NewBoltStore(conf.DatabaseFile, logger)
+	if err != nil {
+		logger.Fatalf("Could not open database:%v", err)
+	}
+
 	go func(addr string) {
 		logger.Printf("Starting Metrics Server on: %s", addr)
 		http.Handle("/metrics", promhttp.Handler())
@@ -73,7 +79,7 @@ func run(conf *Config, logger *log.Logger) {
 		logger.Printf("Starting Check: %s with interval:%s", c.Name, c.Interval.Duration)
 		go func(c *algochecks.Check) {
 			if c.Immediate {
-				err := runCheck(c, conf, logger)
+				err := runCheck(c, conf, logger, s)
 				if err != nil {
 					logger.Printf("Error in Check: %s : %v", c.Name, err)
 				}
@@ -83,7 +89,7 @@ func run(conf *Config, logger *log.Logger) {
 				case <-done:
 					return
 				case <-ticker.C:
-					err := runCheck(c, conf, logger)
+					err := runCheck(c, conf, logger, s)
 					logger.Printf("Error in Check: %s : %v", c.Name, err)
 				}
 			}
@@ -126,7 +132,7 @@ func getActioner(a *actions.ActionMeta, conf *Config, logger *log.Logger) action
 	return actioner
 }
 
-func runCheck(c *algochecks.Check, conf *Config, logger *log.Logger) error {
+func runCheck(c *algochecks.Check, conf *Config, logger *log.Logger, s *store.BoltStore) error {
 
 	algorithmer := getAlgorithmer(c, conf, logger)
 	if algorithmer == nil {
@@ -180,15 +186,30 @@ func runCheck(c *algochecks.Check, conf *Config, logger *log.Logger) error {
 		for _, a := range c.Actions {
 			actioner := getActioner(&a, conf, logger)
 			logger.Printf("Dispatching Action:%s for %s", a.Name, c.Name)
-			_, err := actioner.Action(ctx, a.Action, output.CombinedOut, a.Params, tempWorkDir)
+			out, err := actioner.Action(ctx, a.Action, output.CombinedOut, a.Params, tempWorkDir)
 			if err != nil {
 				logger.Printf("%s Action Failed for Check: %s with error:%v", a.Name, c.Name, err)
 			}
+			// Store Values to Database
+			actionKey, err := s.PutAction(ctx, c.Name, &a, &out)
+			if err != nil {
+				logger.Printf("%s Action Storage Failed for Check: %s with error:%v", a.Name, c.Name, err)
+			}
+			output.ActionKeys = append(output.ActionKeys, actionKey)
+			outputKey, err := s.PutCheck(ctx, c, &output)
+			if err != nil {
+				logger.Printf("%s Check Storage Failed: %v", c.Name, err)
+			}
+			logger.Printf("%s check exited with failure. Output Stored to Key:%s", c.Name, outputKey)
 		}
 		return err
 	}
 
-	logger.Printf("%s check exited successfully", c.Name)
+	outputKey, err := s.PutCheck(ctx, c, &output)
+	if err != nil {
+		logger.Printf("%s Check Storage Failed: %v", c.Name, err)
+	}
+	logger.Printf("%s check exited successfully. Output Stored to Key:%s", c.Name, outputKey)
 	succeeded.Inc()
 	return nil
 }

@@ -13,6 +13,7 @@ type Output struct {
 	CombinedOut string    `json:"combined_out"`
 	RC          int       `json:"rc"`
 	Error       error     `json:"error"`
+	ActionKeys  []string  `json:"action_keys"`
 }
 
 type AlgorithmerMeta struct {

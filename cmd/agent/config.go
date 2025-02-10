@@ -17,6 +17,7 @@ type Config struct {
 	Checks            []algochecks.Check           `json:"checks"`
 	MetricsListenAddr string                       `json:"metrics_listen_addr"`
 	BaseWorkingDir    string                       `json:"base_working_dir"`
+	DatabaseFile      string                       `json:"database_file"`
 }
 
 func fetchDatasourceByName(c *Config, name string) *Datasource {

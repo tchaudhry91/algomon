@@ -6,6 +6,7 @@
 		}
 	],
 	"base_working_dir": "/home/tchaudhry/Temp/",
+	"database_file": "/home/tchaudhry/Temp/algoprom.db",
 	"algorithmers": [
 		{
 			"type": "python",
@@ -35,7 +36,7 @@
 			"algorithmer_type": "python",
 			"algorithm": "offset_threshold",
 			"algorithm_params": {
-				"threshold": "10"
+				"threshold": "20"
 			},
 			"inputs": [
 				{
@@ -49,7 +50,48 @@
 					"query": "sum(increase(caddy_http_requests_total[5m] offset 1w))"
 				}
 			],
-			"interval": "2m",
+			"interval": "20s",
+			"actions": [
+				{
+					"name": "Alert Teams 1",
+					"action": "alert_teams",
+					"actioner": "python",
+					"params": {
+						"channel": "testing-algoprom"
+					}
+				},
+				{
+					"name": "Alert Teams 2",
+					"action": "alert_teams",
+					"actioner": "python",
+					"params": {
+						"channel": "testing-algoprom-2"
+					}
+				}
+			]
+		},
+		{
+			"name": "Sample HTTP Check - 2",
+			"immediate": true,
+			"debug": true,
+			"algorithmer_type": "python",
+			"algorithm": "offset_threshold",
+			"algorithm_params": {
+				"threshold": "20"
+			},
+			"inputs": [
+				{
+					"name": "current",
+					"datasource": "sample",
+					"query": "sum(increase(caddy_http_requests_total[5m]))"
+				},
+				{
+					"name": "previous",
+					"datasource": "sample",
+					"query": "sum(increase(caddy_http_requests_total[5m] offset 1d))"
+				}
+			],
+			"interval": "10s",
 			"actions": [
 				{
 					"name": "Alert Teams 1",
