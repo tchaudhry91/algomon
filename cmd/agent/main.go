@@ -170,6 +170,9 @@ func runCheck(c *algochecks.Check, conf *Config, logger *log.Logger) error {
 		inputs[i.Name] = res
 	}
 	output, err := algorithmer.ApplyAlgorithm(ctx, c.Algorithm, c.AlgorithmParams, inputs, tempWorkDir)
+	if c.Debug {
+		defer logger.Printf("%s Output: %s", c.Name, output.CombinedOut)
+	}
 	if err != nil || output.RC != 0 {
 		failed.Inc()
 		logger.Printf("%s check failed: %v, RC:%d", c.Name, err, output.RC)

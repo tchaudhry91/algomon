@@ -14,4 +14,5 @@ type Check struct {
 	Actions         []actions.ActionMeta  `json:"actions"`
 	Interval        measure.Duration      `json:"interval"`
 	Immediate       bool                  `json:"immediate"`
+	Debug           bool                  `json:"debug"`
 }
