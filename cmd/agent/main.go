@@ -35,16 +35,17 @@ var header = `
 func main() {
 	logger := log.Default()
 	logger.SetPrefix("algoprom")
+	logger.SetReportCaller(true)
 	var configF = flag.String("c", "algoprom.json", "config file to use")
 	flag.Parse()
 
 	config := Config{}
 	confData, err := os.ReadFile(*configF)
 	if err != nil {
-		logger.Fatalf("Error Reading Config File: %v", err)
+		logger.Fatal("Error Reading Config File", "err", err)
 	}
 	if err = json.Unmarshal(confData, &config); err != nil {
-		logger.Fatalf("Unable to Unmarshal Config: %v", err)
+		logger.Fatal("Unable to Unmarshal Config", "err", err)
 	}
 	fmt.Print(header)
 	run(&config, logger)
@@ -66,11 +67,11 @@ func run(conf *Config, logger *log.Logger) {
 
 	s, err := store.NewBoltStore(conf.DatabaseFile, logger)
 	if err != nil {
-		logger.Fatalf("Could not open database:%v", err)
+		logger.Fatal("Could not open database", "err", err)
 	}
 
 	go func(addr string) {
-		logger.Infof("Starting Metrics Server on: %s", addr)
+		logger.Info("Starting Metrics Server", "addr", addr)
 		http.Handle("/metrics", promhttp.Handler())
 		http.ListenAndServe(addr, nil)
 	}(addr)
@@ -78,17 +79,17 @@ func run(conf *Config, logger *log.Logger) {
 	for _, c := range conf.Checks {
 		ticker := time.NewTicker(c.Interval.Duration)
 		tickers = append(tickers, ticker)
-		logger.Infof("Starting Check: %s with interval:%s", c.Name, c.Interval.Duration)
+		logger.Info("Starting Check", "name", c.Name, "interval", c.Interval.Duration)
 		go func(c *algochecks.Check, logger *log.Logger) {
 			if c.Immediate {
 				err := runCheck(c, conf, logger, s)
 				if err != nil {
-					logger.Errorf("Error: %v", err)
+					logger.Error("err", err)
 				}
 			}
 			// Add a little bit of random starting delay to stagger checks
 			staggerSeconds := rand.Intn(int(c.Interval.Duration.Seconds()))
-			logger.Infof("Adding Initial Stagger of %d seconds", staggerSeconds)
+			logger.Info("Adding Initial Stagger", "duration", staggerSeconds)
 			time.Sleep(time.Duration(staggerSeconds) * time.Second)
 			for {
 				select {
@@ -97,7 +98,7 @@ func run(conf *Config, logger *log.Logger) {
 				case <-ticker.C:
 					err := runCheck(c, conf, logger, s)
 					if err != nil {
-						logger.Errorf("Error: %v", err)
+						logger.Error("err", err)
 					}
 				}
 			}
@@ -106,16 +107,16 @@ func run(conf *Config, logger *log.Logger) {
 
 	select {
 	case signalKill := <-interrupt:
-		logger.Infof("Received Interrupt:%s", signalKill)
+		logger.Info("Received Interrupt", "signal", signalKill)
 		for name, cancel := range contexts {
-			logger.Infof("Cancelling:%s", name)
+			logger.Info("Cancelling", "name", name)
 			(*cancel)()
 		}
 		for _, ticker := range tickers {
 			ticker.Stop()
 		}
 	case err := <-shutdown:
-		logger.Errorf("Error:%v", err)
+		logger.Error("err", err)
 	}
 
 }
@@ -189,35 +190,36 @@ func runCheck(c *algochecks.Check, conf *Config, logger *log.Logger, s *store.Bo
 	}
 	if err != nil || output.RC != 0 {
 		failed.Inc()
-		logger.Errorf("%s check failed: %v, RC:%d", c.Name, err, output.RC)
+		logger.Error("Check failed", "name", c.Name, "err", err, "rc", output.RC)
 
 		for _, a := range c.Actions {
 			actioner := getActioner(&a, conf, logger)
-			logger.Infof("Dispatching Action:%s", a.Name)
+			logger.Info("Dispatching Action", "action", a.Name)
 			out, err := actioner.Action(ctx, a.Action, output.CombinedOut, a.Params, tempWorkDir)
 			if err != nil {
-				logger.Errorf("%s Action Failed with error:%v", a.Name, err)
+				logger.Error("Action Failed with error", "name", a.Name, "err", err)
 			}
 			// Store Values to Database
 			actionKey, err := s.PutAction(ctx, c.Name, &a, &out)
 			if err != nil {
-				logger.Errorf("%s Action Storage Failed with error:%v", a.Name, err)
+				logger.Error("Action Storage Failed with error", "name", a.Name, "err", err)
 			}
 			output.ActionKeys = append(output.ActionKeys, actionKey)
 			outputKey, err := s.PutCheck(ctx, c, &output)
 			if err != nil {
-				logger.Errorf("Check Storage Failed: %v", err)
+				logger.Error("Check Storage Failed", "err", err)
+
+				logger.Error("Exited with failure", "storage_key", outputKey)
 			}
-			logger.Errorf("Exited with failure. Output Stored to Key:%s", outputKey)
+			return err
 		}
-		return err
 	}
 
 	outputKey, err := s.PutCheck(ctx, c, &output)
 	if err != nil {
-		logger.Errorf("Check Storage Failed: %v", err)
+		logger.Error("Check Storage Failed", "err", err)
 	}
-	logger.Infof("Exited successfully. Output Stored to Key:%s", outputKey)
+	logger.Info("Exited successfully. Output Stored to Key", "storage_key", outputKey)
 	succeeded.Inc()
 	return nil
 }
