@@ -4,12 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"path"
 	"time"
 
+	log "github.com/charmbracelet/log"
 	"github.com/tchaudhry91/algoprom/measure"
 )
 

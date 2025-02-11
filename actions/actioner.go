@@ -2,7 +2,7 @@ package actions
 
 import (
 	"context"
-	"log"
+	log "github.com/charmbracelet/log"
 	"time"
 )
 

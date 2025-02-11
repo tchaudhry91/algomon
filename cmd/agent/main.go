@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"log"
 	"math/rand"
 	"net/http"
 	"os"
@@ -13,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	log "github.com/charmbracelet/log"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/tchaudhry91/algoprom/actions"
 	"github.com/tchaudhry91/algoprom/algochecks"
@@ -34,6 +34,7 @@ var header = `
 
 func main() {
 	logger := log.Default()
+	logger.SetPrefix("algoprom")
 	var configF = flag.String("c", "algoprom.json", "config file to use")
 	flag.Parse()
 
@@ -69,7 +70,7 @@ func run(conf *Config, logger *log.Logger) {
 	}
 
 	go func(addr string) {
-		logger.Printf("Starting Metrics Server on: %s", addr)
+		logger.Infof("Starting Metrics Server on: %s", addr)
 		http.Handle("/metrics", promhttp.Handler())
 		http.ListenAndServe(addr, nil)
 	}(addr)
@@ -77,17 +78,17 @@ func run(conf *Config, logger *log.Logger) {
 	for _, c := range conf.Checks {
 		ticker := time.NewTicker(c.Interval.Duration)
 		tickers = append(tickers, ticker)
-		logger.Printf("Starting Check: %s with interval:%s", c.Name, c.Interval.Duration)
-		go func(c *algochecks.Check) {
+		logger.Infof("Starting Check: %s with interval:%s", c.Name, c.Interval.Duration)
+		go func(c *algochecks.Check, logger *log.Logger) {
 			if c.Immediate {
 				err := runCheck(c, conf, logger, s)
 				if err != nil {
-					logger.Printf("Error in Check: %s : %v", c.Name, err)
+					logger.Errorf("Error: %v", err)
 				}
 			}
 			// Add a little bit of random starting delay to stagger checks
 			staggerSeconds := rand.Intn(int(c.Interval.Duration.Seconds()))
-			logger.Printf("Adding Initial Stager of %d seconds", staggerSeconds)
+			logger.Infof("Adding Initial Stagger of %d seconds", staggerSeconds)
 			time.Sleep(time.Duration(staggerSeconds) * time.Second)
 			for {
 				select {
@@ -96,25 +97,25 @@ func run(conf *Config, logger *log.Logger) {
 				case <-ticker.C:
 					err := runCheck(c, conf, logger, s)
 					if err != nil {
-						logger.Printf("Error in Check: %s : %v", c.Name, err)
+						logger.Errorf("Error: %v", err)
 					}
 				}
 			}
-		}(&c)
+		}(&c, logger.WithPrefix(c.Name))
 	}
 
 	select {
 	case signalKill := <-interrupt:
-		logger.Println("Received Interrupt:", signalKill)
+		logger.Infof("Received Interrupt:%s", signalKill)
 		for name, cancel := range contexts {
-			logger.Println("Cancelling:", name)
+			logger.Infof("Cancelling:%s", name)
 			(*cancel)()
 		}
 		for _, ticker := range tickers {
 			ticker.Stop()
 		}
 	case err := <-shutdown:
-		logger.Println("Error:", err)
+		logger.Errorf("Error:%v", err)
 	}
 
 }
@@ -143,7 +144,7 @@ func runCheck(c *algochecks.Check, conf *Config, logger *log.Logger, s *store.Bo
 
 	algorithmer := getAlgorithmer(c, conf, logger)
 	if algorithmer == nil {
-		return fmt.Errorf("AlgorithmerType:%s not found for check:%s", c.AlgorithmerType, c.Name)
+		return fmt.Errorf("AlgorithmerType:%s not found", c.AlgorithmerType)
 	}
 
 	processed := countProcessed.WithLabelValues(c.Name)
@@ -154,7 +155,7 @@ func runCheck(c *algochecks.Check, conf *Config, logger *log.Logger, s *store.Bo
 	tempWorkDir, err := os.MkdirTemp(conf.BaseWorkingDir, c.Name+"-")
 	if err != nil {
 		failed.Inc()
-		return fmt.Errorf("Unable to create Temp Dir for check %s: %v", c.Name, err)
+		return fmt.Errorf("Unable to create Temp Dir: %v", err)
 	}
 	defer os.RemoveAll(tempWorkDir)
 
@@ -184,39 +185,39 @@ func runCheck(c *algochecks.Check, conf *Config, logger *log.Logger, s *store.Bo
 	}
 	output, err := algorithmer.ApplyAlgorithm(ctx, c.Algorithm, c.AlgorithmParams, inputs, tempWorkDir)
 	if c.Debug {
-		defer logger.Printf("%s Output: %s", c.Name, output.CombinedOut)
+		defer logger.Debugf("Output: %s", output.CombinedOut)
 	}
 	if err != nil || output.RC != 0 {
 		failed.Inc()
-		logger.Printf("%s check failed: %v, RC:%d", c.Name, err, output.RC)
+		logger.Errorf("%s check failed: %v, RC:%d", c.Name, err, output.RC)
 
 		for _, a := range c.Actions {
 			actioner := getActioner(&a, conf, logger)
-			logger.Printf("Dispatching Action:%s for %s", a.Name, c.Name)
+			logger.Infof("Dispatching Action:%s", a.Name)
 			out, err := actioner.Action(ctx, a.Action, output.CombinedOut, a.Params, tempWorkDir)
 			if err != nil {
-				logger.Printf("%s Action Failed for Check: %s with error:%v", a.Name, c.Name, err)
+				logger.Errorf("%s Action Failed with error:%v", a.Name, err)
 			}
 			// Store Values to Database
 			actionKey, err := s.PutAction(ctx, c.Name, &a, &out)
 			if err != nil {
-				logger.Printf("%s Action Storage Failed for Check: %s with error:%v", a.Name, c.Name, err)
+				logger.Errorf("%s Action Storage Failed with error:%v", a.Name, err)
 			}
 			output.ActionKeys = append(output.ActionKeys, actionKey)
 			outputKey, err := s.PutCheck(ctx, c, &output)
 			if err != nil {
-				logger.Printf("%s Check Storage Failed: %v", c.Name, err)
+				logger.Errorf("Check Storage Failed: %v", err)
 			}
-			logger.Printf("%s check exited with failure. Output Stored to Key:%s", c.Name, outputKey)
+			logger.Errorf("Exited with failure. Output Stored to Key:%s", outputKey)
 		}
 		return err
 	}
 
 	outputKey, err := s.PutCheck(ctx, c, &output)
 	if err != nil {
-		logger.Printf("%s Check Storage Failed: %v", c.Name, err)
+		logger.Errorf("Check Storage Failed: %v", err)
 	}
-	logger.Printf("%s check exited successfully. Output Stored to Key:%s", c.Name, outputKey)
+	logger.Infof("Exited successfully. Output Stored to Key:%s", outputKey)
 	succeeded.Inc()
 	return nil
 }

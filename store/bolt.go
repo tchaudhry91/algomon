@@ -4,10 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"strconv"
 
 	"github.com/boltdb/bolt"
+	log "github.com/charmbracelet/log"
 	"github.com/tchaudhry91/algoprom/actions"
 	"github.com/tchaudhry91/algoprom/algochecks"
 )

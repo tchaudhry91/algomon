@@ -2,10 +2,11 @@ package algochecks
 
 import (
 	"context"
-	"log"
 	"time"
 
 	"github.com/tchaudhry91/algoprom/measure"
+
+	log "github.com/charmbracelet/log"
 )
 
 type Output struct {
