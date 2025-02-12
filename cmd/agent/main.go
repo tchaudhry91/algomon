@@ -60,7 +60,7 @@ func run(conf *Config, logger *log.Logger) {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
 
-	addr := conf.MetricsListenAddr
+	addr := conf.APIListenAddr
 	if addr == "" {
 		addr = "127.0.0.1:9967"
 	}
@@ -211,6 +211,7 @@ func runCheck(c *algochecks.Check, conf *Config, logger *log.Logger, s *store.Bo
 
 				logger.Error("Exited with failure", "storage_key", outputKey)
 			}
+			logger.Info("Exited with Error. Output Stored to Key", "storage_key", outputKey)
 			return err
 		}
 	}

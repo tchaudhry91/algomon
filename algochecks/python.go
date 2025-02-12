@@ -26,6 +26,7 @@ func (pa *PythonAlgorithmer) ApplyAlgorithm(ctx context.Context, algorithm strin
 		RC:          -1,
 		CombinedOut: "",
 		Timestamp:   time.Now().UTC(),
+		Status:      StatusFailed,
 	}
 	cmdWrap := []string{"-c"}
 	pythonCmd := ""
@@ -63,9 +64,12 @@ func (pa *PythonAlgorithmer) ApplyAlgorithm(ctx context.Context, algorithm strin
 		if exiterror, ok := err.(*exec.ExitError); ok {
 			out.RC = exiterror.ProcessState.ExitCode()
 		}
-		out.Error = err
+		out.Error = err.Error()
 	}
 	out.RC = cmd.ProcessState.ExitCode()
+	if out.RC == 0 {
+		out.Status = StatusSuccess
+	}
 	out.CombinedOut = string(combined)
 
 	return out, err

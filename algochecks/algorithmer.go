@@ -9,11 +9,15 @@ import (
 	log "github.com/charmbracelet/log"
 )
 
+var StatusFailed = "FAILED"
+var StatusSuccess = "SUCCESSFUL"
+
 type Output struct {
+	Status      string    `json:"status"`
 	Timestamp   time.Time `json:"timestamp"`
 	CombinedOut string    `json:"combined_out"`
 	RC          int       `json:"rc"`
-	Error       error     `json:"error"`
+	Error       string    `json:"error"`
 	ActionKeys  []string  `json:"action_keys"`
 }
 

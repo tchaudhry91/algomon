@@ -36,7 +36,7 @@
 			"algorithmer_type": "python",
 			"algorithm": "offset_threshold",
 			"algorithm_params": {
-				"threshold": "20"
+				"threshold": "2"
 			},
 			"inputs": [
 				{
