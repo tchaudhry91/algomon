@@ -44,7 +44,7 @@ func TestGetNamedCheck(t *testing.T) {
 }
 
 func TestGetNamedCheckFailures(t *testing.T) {
-	outputs, err := db.GetNamedCheckFailures(context.Background(), "Sample HTTP Check", 100)
+	outputs, err := db.GetNamedCheckFailures(context.Background(), "Sample HTTP Check", 3)
 	if err != nil {
 		t.Fatalf("Could not fetch named check")
 	}
