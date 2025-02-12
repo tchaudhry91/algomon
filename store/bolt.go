@@ -97,6 +97,40 @@ func (s *BoltStore) GetAllCheckNames(ctx context.Context) ([]string, error) {
 	return buckets, err
 }
 
+func (s *BoltStore) GetNamedCheckFailures(ctx context.Context, name string, limit int) (outputs []algochecks.Output, err error) {
+	outputs = []algochecks.Output{}
+	err = s.db.View(func(tx *bolt.Tx) error {
+		checksBucket := tx.Bucket([]byte("checks"))
+		if checksBucket == nil {
+			return ErrBucketEmpty
+		}
+		checkBucket := checksBucket.Bucket([]byte(name))
+		if checkBucket == nil {
+			return nil
+		}
+		cur := checkBucket.Cursor()
+		count := 0
+		k, v := cur.First()
+		for count < limit {
+			if k == nil {
+				break
+			}
+			output := algochecks.Output{}
+			err = json.Unmarshal(v, &output)
+			if err != nil {
+				return err
+			}
+			if output.Status == algochecks.StatusFailed {
+				outputs = append(outputs, output)
+				count += 1
+			}
+			k, v = cur.Next()
+		}
+		return nil
+	})
+	return outputs, err
+}
+
 func (s *BoltStore) GetNamedCheck(ctx context.Context, name string, limit int) (allOutputs []algochecks.Output, err error) {
 	allOutputs = []algochecks.Output{}
 	err = s.db.View(func(tx *bolt.Tx) error {
