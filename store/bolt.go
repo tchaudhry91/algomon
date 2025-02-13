@@ -97,6 +97,41 @@ func (s *BoltStore) GetAllCheckNames(ctx context.Context) ([]string, error) {
 	return buckets, err
 }
 
+func (s *BoltStore) GetChecksStatus(ctx context.Context) (map[string]algochecks.Output, error) {
+	result := map[string]algochecks.Output{}
+	checkNames, err := s.GetAllCheckNames(ctx)
+	if err != nil {
+		return result, err
+	}
+	for _, name := range checkNames {
+		out, err := s.GetCheckStatus(ctx, name)
+		if err != nil {
+			return result, err
+		}
+		result[name] = out
+	}
+	return result, err
+}
+
+func (s *BoltStore) GetCheckStatus(ctx context.Context, name string) (algochecks.Output, error) {
+	output := algochecks.Output{}
+	err := s.db.View(func(tx *bolt.Tx) error {
+		checksBucket := tx.Bucket([]byte("checks"))
+		if checksBucket == nil {
+			return ErrBucketEmpty
+		}
+		checkBucket := checksBucket.Bucket([]byte(name))
+		if checkBucket == nil {
+			return nil
+		}
+		cur := checkBucket.Cursor()
+		_, v := cur.Last()
+		err := json.Unmarshal(v, &output)
+		return err
+	})
+	return output, err
+}
+
 func (s *BoltStore) GetNamedCheckFailures(ctx context.Context, name string, limit int) (outputs []algochecks.Output, err error) {
 	outputs = []algochecks.Output{}
 	err = s.db.View(func(tx *bolt.Tx) error {
@@ -110,7 +145,7 @@ func (s *BoltStore) GetNamedCheckFailures(ctx context.Context, name string, limi
 		}
 		cur := checkBucket.Cursor()
 		count := 0
-		k, v := cur.First()
+		k, v := cur.Last()
 		for count < limit {
 			if k == nil {
 				break
@@ -124,7 +159,7 @@ func (s *BoltStore) GetNamedCheckFailures(ctx context.Context, name string, limi
 				outputs = append(outputs, output)
 				count += 1
 			}
-			k, v = cur.Next()
+			k, v = cur.Prev()
 		}
 		return nil
 	})
@@ -144,7 +179,7 @@ func (s *BoltStore) GetNamedCheck(ctx context.Context, name string, limit int) (
 		}
 		cur := checkBucket.Cursor()
 		count := 0
-		k, v := cur.First()
+		k, v := cur.Last()
 		for count < limit {
 			if k == nil {
 				break
@@ -155,7 +190,7 @@ func (s *BoltStore) GetNamedCheck(ctx context.Context, name string, limit int) (
 				return err
 			}
 			allOutputs = append(allOutputs, output)
-			k, v = cur.Next()
+			k, v = cur.Prev()
 			count += 1
 		}
 		return nil

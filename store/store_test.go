@@ -50,3 +50,11 @@ func TestGetNamedCheckFailures(t *testing.T) {
 	}
 	t.Log(outputs)
 }
+
+func TestGetChecksStatus(t *testing.T) {
+	outputs, err := db.GetChecksStatus(context.Background())
+	if err != nil {
+		t.Fatalf("Could not fetch checks status")
+	}
+	t.Log(outputs)
+}
