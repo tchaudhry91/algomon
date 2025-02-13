@@ -72,7 +72,7 @@ func run(conf *Config, logger *log.Logger) {
 	}
 
 	slogHandler := slog.New(logger.WithPrefix("APIServer"))
-	server := NewAPIServer(s, slogHandler)
+	server := NewAPIServer(s, conf, slogHandler)
 
 	apiMux := http.NewServeMux()
 	apiMux.Handle("/metrics", promhttp.Handler())

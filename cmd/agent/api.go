@@ -13,10 +13,11 @@ import (
 type APIServer struct {
 	e      *echo.Echo
 	db     *store.BoltStore
+	config *Config
 	logger *slog.Logger
 }
 
-func NewAPIServer(db *store.BoltStore, logger *slog.Logger) *APIServer {
+func NewAPIServer(db *store.BoltStore, config *Config, logger *slog.Logger) *APIServer {
 	e := echo.New()
 	e.Use(middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
 		LogStatus:   true,
@@ -44,6 +45,7 @@ func NewAPIServer(db *store.BoltStore, logger *slog.Logger) *APIServer {
 		e:      e,
 		db:     db,
 		logger: logger,
+		config: config,
 	}
 	server.Routes()
 	server.logger.Info("Registered Routes!")
