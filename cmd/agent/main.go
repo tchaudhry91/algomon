@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"log/slog"
 	"math/rand"
 	"net/http"
 	"os"
@@ -70,10 +71,22 @@ func run(conf *Config, logger *log.Logger) {
 		logger.Fatal("Could not open database", "err", err)
 	}
 
+	slogHandler := slog.New(logger.WithPrefix("APIServer"))
+	server := NewAPIServer(s, slogHandler)
+
+	apiMux := http.NewServeMux()
+	apiMux.Handle("/metrics", promhttp.Handler())
+	apiMux.Handle("/", server.Mux())
+
 	go func(addr string) {
-		logger.Info("Starting Metrics Server", "addr", addr)
-		http.Handle("/metrics", promhttp.Handler())
-		http.ListenAndServe(addr, nil)
+		logger.Info("Starting API Server", "addr", addr)
+		server := http.Server{
+			Addr:    addr,
+			Handler: apiMux,
+		}
+		if err := server.ListenAndServe(); err != http.ErrServerClosed {
+			logger.Fatal(err)
+		}
 	}(addr)
 
 	for _, c := range conf.Checks {
