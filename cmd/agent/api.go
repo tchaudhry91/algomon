@@ -41,6 +41,7 @@ func NewAPIServer(db *store.BoltStore, config *Config, logger *slog.Logger) *API
 		},
 	}))
 	e.Use(middleware.Recover())
+	e.Use(middleware.CORS())
 	server := APIServer{
 		e:      e,
 		db:     db,

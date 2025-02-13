@@ -1,7 +1,8 @@
-<h1>Welcome to SvelteKit</h1>
+<script>
+	import Dashboard from '$lib/Dashboard.svelte';
+	let { data } = $props();
+</script>
 
-<div class="columns">
-	<div class="column">
-		Column 1
-		</div>
-	</div>
+<div class="container">
+	<Dashboard checks={data.checks} />
+</div>

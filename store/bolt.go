@@ -97,8 +97,8 @@ func (s *BoltStore) GetAllCheckNames(ctx context.Context) ([]string, error) {
 	return buckets, err
 }
 
-func (s *BoltStore) GetChecksStatus(ctx context.Context) (map[string]algochecks.Output, error) {
-	result := map[string]algochecks.Output{}
+func (s *BoltStore) GetChecksStatus(ctx context.Context) ([]algochecks.Output, error) {
+	result := []algochecks.Output{}
 	checkNames, err := s.GetAllCheckNames(ctx)
 	if err != nil {
 		return result, err
@@ -108,7 +108,7 @@ func (s *BoltStore) GetChecksStatus(ctx context.Context) (map[string]algochecks.
 		if err != nil {
 			return result, err
 		}
-		result[name] = out
+		result = append(result, out)
 	}
 	return result, err
 }

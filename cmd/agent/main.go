@@ -198,6 +198,7 @@ func runCheck(c *algochecks.Check, conf *Config, logger *log.Logger, s *store.Bo
 		inputs[i.Name] = res
 	}
 	output, err := algorithmer.ApplyAlgorithm(ctx, c.Algorithm, c.AlgorithmParams, inputs, tempWorkDir)
+	output.Name = c.Name
 	if c.Debug {
 		defer logger.Debugf("Output: %s", output.CombinedOut)
 	}
