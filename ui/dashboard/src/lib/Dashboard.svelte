@@ -17,7 +17,7 @@
 	<tbody>
 		{#each checks as check}
 			<tr>
-				<td>{check.name}</td>
+				<td><a href="/checks/{check.name}">{check.name}</a></td>
 				<td align="center">{getMinutesSinceDate(check.timestamp)}m</td>
 				<td align="center">{@html getStatusIcon(check.status)}</td>
 				<td>{check.action_keys}</td>

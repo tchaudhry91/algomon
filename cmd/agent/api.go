@@ -59,10 +59,30 @@ func (s *APIServer) Mux() http.Handler {
 
 func (s *APIServer) Routes() {
 	s.e.GET("/api/v1/checks", s.getChecksStatus)
+	s.e.GET("/api/v1/checks/:name", s.getNamedCheck)
+	s.e.GET("/api/v1/checks/:name/failures", s.getNamedCheckFailures)
 }
 
 func (s *APIServer) getChecksStatus(c echo.Context) error {
 	data, err := s.db.GetChecksStatus(c.Request().Context())
+	if err != nil {
+		return err
+	}
+	return c.JSON(http.StatusOK, data)
+}
+
+func (s *APIServer) getNamedCheck(c echo.Context) error {
+	name := c.Param("name")
+	data, err := s.db.GetNamedCheck(c.Request().Context(), name, 5)
+	if err != nil {
+		return err
+	}
+	return c.JSON(http.StatusOK, data)
+}
+
+func (s *APIServer) getNamedCheckFailures(c echo.Context) error {
+	name := c.Param("name")
+	data, err := s.db.GetNamedCheckFailures(c.Request().Context(), name, 5)
 	if err != nil {
 		return err
 	}

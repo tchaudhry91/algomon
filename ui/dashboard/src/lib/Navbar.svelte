@@ -1,6 +1,6 @@
 <nav class="navbar" aria-label="main navigation">
 	<div class="navbar-brand">
-		<a class="button is-light m-4" href="/"> AlgoMon </a>
+		<a class="nodecorate m-4" href="/"> AlgoMon </a>
 	</div>
 
 	<div id="navbarBasicExample" class="navbar-menu">
