@@ -1,5 +1,5 @@
 export async function fetchDashboardData(fetcher) {
-	const url = 'http://localhost:9967/api/v1/checks';
+	const url = '/api/v1/checks';
 	try {
 		const response = await fetcher(url);
 		if (!response.ok) {
@@ -13,7 +13,7 @@ export async function fetchDashboardData(fetcher) {
 }
 
 export async function fetchNamedCheckData(fetcher, name) {
-	const url = 'http://localhost:9967/api/v1/checks/' + name;
+	const url = '/api/v1/checks/' + name;
 	try {
 		const response = await fetcher(url);
 		if (!response.ok) {
