@@ -1,4 +1,4 @@
-module github.com/tchaudhry91/algoprom
+module github.com/tchaudhry91/algomon
 
 go 1.23.5
 

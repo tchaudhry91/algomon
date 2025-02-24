@@ -6,13 +6,13 @@
 		}
 	],
 	"base_working_dir": "/home/tchaudhry/Temp/",
-	"database_file": "/home/tchaudhry/Temp/algoprom.db",
+	"database_file": "/home/tchaudhry/Temp/algomon.db",
 	"algorithmers": [
 		{
 			"type": "python",
 			"params": {
 				"venv": "/home/tchaudhry/.venvs/prom",
-				"directory": "/home/tchaudhry/Workspace/algoprom/scripts/algorithms/python"
+				"directory": "/home/tchaudhry/Workspace/algomon/scripts/algorithms/python"
 			},
 			"env_override": {
 				"ENVIRONMENT": "QA"
@@ -24,7 +24,7 @@
 			"type": "python",
 			"params": {
 				"venv": "/home/tchaudhry/.venvs/prom",
-				"directory": "/home/tchaudhry/Workspace/algoprom/scripts/actions/python"
+				"directory": "/home/tchaudhry/Workspace/algomon/scripts/actions/python"
 			}
 		}
 	],
@@ -57,7 +57,7 @@
 					"action": "alert_teams",
 					"actioner": "python",
 					"params": {
-						"channel": "testing-algoprom"
+						"channel": "testing-algomon"
 					}
 				},
 				{
@@ -65,7 +65,7 @@
 					"action": "alert_teams",
 					"actioner": "python",
 					"params": {
-						"channel": "testing-algoprom-2"
+						"channel": "testing-algomon-2"
 					}
 				}
 			]
@@ -97,7 +97,7 @@
 					"action": "alert_teams",
 					"actioner": "python",
 					"params": {
-						"channel": "testing-algoprom"
+						"channel": "testing-algomon"
 					}
 				},
 				{
@@ -105,7 +105,7 @@
 					"action": "alert_teams",
 					"actioner": "python",
 					"params": {
-						"channel": "testing-algoprom-2"
+						"channel": "testing-algomon-2"
 					}
 				}
 			]

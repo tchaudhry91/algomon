@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/tchaudhry91/algoprom/measure"
+	"github.com/tchaudhry91/algomon/measure"
 
 	log "github.com/charmbracelet/log"
 )

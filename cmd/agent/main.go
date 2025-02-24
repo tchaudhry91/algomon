@@ -15,10 +15,10 @@ import (
 
 	log "github.com/charmbracelet/log"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/tchaudhry91/algoprom/actions"
-	"github.com/tchaudhry91/algoprom/algochecks"
-	"github.com/tchaudhry91/algoprom/measure"
-	"github.com/tchaudhry91/algoprom/store"
+	"github.com/tchaudhry91/algomon/actions"
+	"github.com/tchaudhry91/algomon/algochecks"
+	"github.com/tchaudhry91/algomon/measure"
+	"github.com/tchaudhry91/algomon/store"
 )
 
 var header = `
@@ -35,9 +35,9 @@ var header = `
 
 func main() {
 	logger := log.Default()
-	logger.SetPrefix("algoprom")
+	logger.SetPrefix("algomon")
 	logger.SetReportCaller(true)
-	var configF = flag.String("c", "algoprom.json", "config file to use")
+	var configF = flag.String("c", "algomon.json", "config file to use")
 	flag.Parse()
 
 	config := Config{}

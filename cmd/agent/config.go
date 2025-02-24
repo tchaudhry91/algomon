@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/tchaudhry91/algoprom/actions"
-	"github.com/tchaudhry91/algoprom/algochecks"
+	"github.com/tchaudhry91/algomon/actions"
+	"github.com/tchaudhry91/algomon/algochecks"
 )
 
 type Datasource struct {

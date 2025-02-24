@@ -3,9 +3,9 @@ version: '3'
 tasks:
   build-agent:
     cmds:
-      - CGO_ENABLED=0 go build -o algoprom-agent ./cmd/agent
+      - CGO_ENABLED=0 go build -o algomon-agent ./cmd/agent
 
   run-agent:
     cmds:
       - task: build-agent
-      - sh -c ./algoprom-agent
+      - sh -c ./algomon-agent

@@ -10,7 +10,7 @@ import (
 	"time"
 
 	log "github.com/charmbracelet/log"
-	"github.com/tchaudhry91/algoprom/measure"
+	"github.com/tchaudhry91/algomon/measure"
 )
 
 // Basic Python Algorithm Apply

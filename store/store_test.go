@@ -5,14 +5,14 @@ import (
 	"testing"
 
 	"github.com/charmbracelet/log"
-	"github.com/tchaudhry91/algoprom/store"
+	"github.com/tchaudhry91/algomon/store"
 )
 
 var db *store.BoltStore
 
 // This is not great, but this is how I'm debugging for now
 func init() {
-	store, err := store.NewBoltStore("/home/tchaudhry/Temp/algoprom.db", log.Default())
+	store, err := store.NewBoltStore("/home/tchaudhry/Temp/algomon.db", log.Default())
 	if err != nil {
 		panic("Could not open DB")
 	}

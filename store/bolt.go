@@ -8,8 +8,8 @@ import (
 
 	"github.com/boltdb/bolt"
 	log "github.com/charmbracelet/log"
-	"github.com/tchaudhry91/algoprom/actions"
-	"github.com/tchaudhry91/algoprom/algochecks"
+	"github.com/tchaudhry91/algomon/actions"
+	"github.com/tchaudhry91/algomon/algochecks"
 )
 
 var ErrBucketEmpty = fmt.Errorf("Bucket Empty")

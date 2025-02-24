@@ -1,8 +1,8 @@
 package algochecks
 
 import (
-	"github.com/tchaudhry91/algoprom/actions"
-	"github.com/tchaudhry91/algoprom/measure"
+	"github.com/tchaudhry91/algomon/actions"
+	"github.com/tchaudhry91/algomon/measure"
 )
 
 type Check struct {
