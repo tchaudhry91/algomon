@@ -16,11 +16,15 @@ def applyAlgorithm(inputs, params):
     """
     output = {
         "violations": [],
-        "error": None
+        "error": None,
+        "title": "Offset Threshold Violation",
     }
     current = inputs.get("current")
     previous = inputs.get("previous")
     threshold = params.get("threshold")
+    output["current"] = current
+    output["previous"] = previous
+    output["threshold"] = threshold
     if current == None or previous == None or threshold == None:
         output["error"] = "Inputs missing. Please ensure both current and previous keys exist and the threshold is defined in the params."
         printOutput(output)

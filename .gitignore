@@ -25,3 +25,4 @@ go.work.sum
 .env
 
 algomon-agent
+sprinklr.json

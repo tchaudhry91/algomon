@@ -38,7 +38,11 @@ func main() {
 	logger.SetPrefix("algomon")
 	logger.SetReportCaller(true)
 	var configF = flag.String("c", "algomon.json", "config file to use")
+	var debugMode = flag.Bool("d", false, "debug logs on")
 	flag.Parse()
+	if *debugMode {
+		logger.SetLevel(log.DebugLevel)
+	}
 
 	config := Config{}
 	confData, err := os.ReadFile(*configF)
@@ -210,6 +214,9 @@ func runCheck(c *algochecks.Check, conf *Config, logger *log.Logger, s *store.Bo
 			actioner := getActioner(&a, conf, logger)
 			logger.Info("Dispatching Action", "action", a.Name)
 			out, err := actioner.Action(ctx, a.Action, output.CombinedOut, a.Params, tempWorkDir)
+			if c.Debug {
+				logger.Debugf("Action Output: %s", out.CombinedOut)
+			}
 			if err != nil {
 				logger.Error("Action Failed with error", "name", a.Name, "err", err)
 			}
