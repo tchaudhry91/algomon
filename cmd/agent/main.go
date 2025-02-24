@@ -3,9 +3,11 @@ package main
 import (
 	"context"
 	"embed"
+	_ "embed"
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io/fs"
 	"log/slog"
 	"net/http"
 	"os"
@@ -33,7 +35,7 @@ var header = `
 
 `
 
-// go:embed static/*
+//go:embed static/*
 var uiFiles embed.FS
 
 func main() {
@@ -83,8 +85,12 @@ func run(conf *Config, logger *log.Logger) {
 
 	apiMux := http.NewServeMux()
 	apiMux.Handle("/metrics", promhttp.Handler())
-	apiMux.Handle("/", http.FileServerFS(uiFiles))
 	apiMux.Handle("/api/", server.Mux())
+	uiSub, err := fs.Sub(uiFiles, "static")
+	if err == nil {
+		logger.Info("Registered UI..")
+		apiMux.Handle("/", http.FileServer(http.FS(uiSub)))
+	}
 
 	go func(addr string) {
 		logger.Info("Starting API Server", "addr", addr)

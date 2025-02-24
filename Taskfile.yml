@@ -3,6 +3,7 @@ version: '3'
 tasks:
   build-agent:
     cmds:
+      - task: build-static-ui
       - CGO_ENABLED=0 go build -o algomon-agent ./cmd/agent
 
   run-agent:
@@ -13,6 +14,6 @@ tasks:
   build-static-ui:
     cmds:
       - cd ui/dashboard && bun run build
-      - rm -rf static/*
-      - cp -r ui/dashboard/build/* static/
+      - rm -rf cmd/agent/static && mkdir cmd/agent/static
+      - cp -r ui/dashboard/build/* cmd/agent/static/
       
