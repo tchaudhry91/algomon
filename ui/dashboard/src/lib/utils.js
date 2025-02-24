@@ -11,3 +11,17 @@ export async function fetchDashboardData(fetcher) {
 		console.error(error.message);
 	}
 }
+
+export function getMinutesSinceDate(date) {
+	const now = new Date();
+	const diff = now - new Date(date);
+	return Math.floor(diff / 60000);
+}
+
+export function getStatusIcon(status) {
+	if (status === 'SUCCESSFUL') {
+		return "<i class='fa-solid fa-check' style='color: #63E6BE;'></i>";
+	} else {
+		return "<i class='fa-solid fa-xmark' style='color: #df0c0c;'></i>";
+	}
+}

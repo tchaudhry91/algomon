@@ -6,7 +6,6 @@ import (
 	"flag"
 	"fmt"
 	"log/slog"
-	"math/rand"
 	"net/http"
 	"os"
 	"os/signal"
@@ -104,10 +103,6 @@ func run(conf *Config, logger *log.Logger) {
 					logger.Error("err", err)
 				}
 			}
-			// Add a little bit of random starting delay to stagger checks
-			staggerSeconds := rand.Intn(int(c.Interval.Duration.Seconds()))
-			logger.Info("Adding Initial Stagger", "duration", staggerSeconds)
-			time.Sleep(time.Duration(staggerSeconds) * time.Second)
 			for {
 				select {
 				case <-done:
