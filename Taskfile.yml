@@ -9,3 +9,10 @@ tasks:
     cmds:
       - task: build-agent
       - sh -c ./algomon-agent
+
+  build-static-ui:
+    cmds:
+      - cd ui/dashboard && bun run build
+      - rm -rf static/*
+      - cp -r ui/dashboard/build/* static/
+      
