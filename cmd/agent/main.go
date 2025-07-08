@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"embed"
-	_ "embed"
+	"_ "embed"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -26,9 +26,9 @@ import (
 var header = `
 	
  ____  _     _____ ____  ____  ____  ____  _            ____  _____ _____ _      _____ 
-/  _ \/ \   /  __//  _ \/  __\/  __\/  _ \/ \__/|      /  _ \/  __//  __// \  /|/__ __\
+/  _ \/ \   /  __//  _ \/  __\\/  __\\/  _ \/ \__/|      /  _ \/  __//  __// \  /|/__ __\
 | / \|| |   | |  _| / \||  \/||  \/|| / \|| |\/||_____ | / \|| |  _|  \  | |\ ||  / \  
-| |-||| |_/\| |_//| \_/||  __/|    /| \_/|| |  ||\____\| |-||| |_//|  /_ | | \||  | |  
+| |-||| |_/\| |_//| \_/||  __/|    /| \_/|| |  |\|\____\| |-||| |_//|  /_ | | \||  | |  
 \_/ \|\____/\____\\____/\_/   \_/\_\\____/\_/  \|      \_/ \|\____\\____\\_/  \|  \_/  
                                                                                        
                                                                                        
@@ -63,7 +63,57 @@ func main() {
 
 var contexts = map[string]*context.CancelFunc{}
 
+func validateConfig(conf *Config) error {
+	datasources := make(map[string]struct{})
+	for _, d := range conf.Datasources {
+		if d.Name == "" {
+			return fmt.Errorf("datasource name cannot be empty")
+		}
+		datasources[d.Name] = struct{}{}
+	}
+
+	algorithmers := make(map[string]struct{})
+	for _, a := range conf.Algorithmers {
+		if a.Type == "" {
+			return fmt.Errorf("algorithmer type cannot be empty")
+		}
+		algorithmers[a.Type] = struct{}{}
+	}
+
+	actioners := make(map[string]struct{})
+	for _, a := range conf.Actioners {
+		if a.Type == "" {
+			return fmt.Errorf("actioner type cannot be empty")
+		}
+		actioners[a.Type] = struct{}{}
+	}
+
+	for _, c := range conf.Checks {
+		if c.Name == "" {
+			return fmt.Errorf("check name cannot be empty")
+		}
+		if _, ok := algorithmers[c.AlgorithmerType]; !ok {
+			return fmt.Errorf("check %q uses undefined algorithmer type %q", c.Name, c.AlgorithmerType)
+		}
+		for _, i := range c.Inputs {
+			if _, ok := datasources[i.Datasource]; !ok {
+				return fmt.Errorf("check %q uses undefined datasource %q", c.Name, i.Datasource)
+			}
+		}
+		for _, a := range c.Actions {
+			if _, ok := actioners[a.Actioner]; !ok {
+				return fmt.Errorf("check %q uses undefined actioner type %q", c.Name, a.Actioner)
+			}
+		}
+	}
+	return nil
+}
+
 func run(conf *Config, logger *log.Logger) {
+	if err := validateConfig(conf); err != nil {
+		logger.Fatal("Invalid configuration", "err", err)
+	}
+
 	tickers := make([]*time.Ticker, 0, 1)
 	done := make(chan bool)
 	shutdown := make(chan error, 1)
@@ -81,27 +131,38 @@ func run(conf *Config, logger *log.Logger) {
 	}
 
 	slogHandler := slog.New(logger.WithPrefix("APIServer"))
-	server := NewAPIServer(s, conf, slogHandler)
+	apiServer := NewAPIServer(s, conf, slogHandler)
 
 	apiMux := http.NewServeMux()
 	apiMux.Handle("/metrics", promhttp.Handler())
-	apiMux.Handle("/api/", server.Mux())
+	apiMux.Handle("/api/", apiServer.Mux())
 	uiSub, err := fs.Sub(uiFiles, "static")
 	if err == nil {
 		logger.Info("Registered UI..")
 		apiMux.Handle("/", http.FileServer(http.FS(uiSub)))
 	}
 
-	go func(addr string) {
+	server := &http.Server{
+		Addr:    addr,
+		Handler: apiMux,
+	}
+
+	go func() {
 		logger.Info("Starting API Server", "addr", addr)
-		server := http.Server{
-			Addr:    addr,
-			Handler: apiMux,
-		}
 		if err := server.ListenAndServe(); err != http.ErrServerClosed {
 			logger.Fatal(err)
 		}
-	}(addr)
+	}()
+
+	algorithmers := make(map[string]algochecks.Algorithmer)
+	for _, aa := range conf.Algorithmers {
+		algorithmers[aa.Type] = algochecks.Build(aa, logger)
+	}
+
+	actioners := make(map[string]actions.Actioner)
+	for _, aa := range conf.Actioners {
+		actioners[aa.Type] = actions.Build(aa, logger)
+	}
 
 	for _, c := range conf.Checks {
 		ticker := time.NewTicker(c.Interval.Duration)
@@ -109,7 +170,7 @@ func run(conf *Config, logger *log.Logger) {
 		logger.Info("Starting Check", "name", c.Name, "interval", c.Interval.Duration)
 		go func(c *algochecks.Check, logger *log.Logger) {
 			if c.Immediate {
-				err := runCheck(c, conf, logger, s)
+				err := runCheck(c, conf, logger, s, algorithmers, actioners)
 				if err != nil {
 					logger.Error("err", err)
 				}
@@ -119,7 +180,7 @@ func run(conf *Config, logger *log.Logger) {
 				case <-done:
 					return
 				case <-ticker.C:
-					err := runCheck(c, conf, logger, s)
+					err := runCheck(c, conf, logger, s, algorithmers, actioners)
 					if err != nil {
 						logger.Error("err", err)
 					}
@@ -131,6 +192,11 @@ func run(conf *Config, logger *log.Logger) {
 	select {
 	case signalKill := <-interrupt:
 		logger.Info("Received Interrupt", "signal", signalKill)
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer shutdownCancel()
+		if err := server.Shutdown(shutdownCtx); err != nil {
+			logger.Error("HTTP server shutdown error", "err", err)
+		}
 		for name, cancel := range contexts {
 			logger.Info("Cancelling", "name", name)
 			(*cancel)()
@@ -144,29 +210,8 @@ func run(conf *Config, logger *log.Logger) {
 
 }
 
-func getAlgorithmer(c *algochecks.Check, conf *Config, logger *log.Logger) algochecks.Algorithmer {
-	var algorithmer algochecks.Algorithmer
-	for _, aa := range conf.Algorithmers {
-		if aa.Type == c.AlgorithmerType {
-			algorithmer = algochecks.Build(aa, logger)
-		}
-	}
-	return algorithmer
-}
-
-func getActioner(a *actions.ActionMeta, conf *Config, logger *log.Logger) actions.Actioner {
-	var actioner actions.Actioner
-	for _, aa := range conf.Actioners {
-		if aa.Type == a.Actioner {
-			actioner = actions.Build(aa, logger)
-		}
-	}
-	return actioner
-}
-
-func runCheck(c *algochecks.Check, conf *Config, logger *log.Logger, s *store.BoltStore) error {
-
-	algorithmer := getAlgorithmer(c, conf, logger)
+func runCheck(c *algochecks.Check, conf *Config, logger *log.Logger, s *store.BoltStore, algorithmers map[string]algochecks.Algorithmer, actioners map[string]actions.Actioner) error {
+	algorithmer := algorithmers[c.AlgorithmerType]
 	if algorithmer == nil {
 		return fmt.Errorf("AlgorithmerType:%s not found", c.AlgorithmerType)
 	}
@@ -217,7 +262,11 @@ func runCheck(c *algochecks.Check, conf *Config, logger *log.Logger, s *store.Bo
 		logger.Error("Check failed", "name", c.Name, "err", err, "rc", output.RC)
 
 		for _, a := range c.Actions {
-			actioner := getActioner(&a, conf, logger)
+			actioner := actioners[a.Actioner]
+			if actioner == nil {
+				logger.Error("Actioner not found", "type", a.Actioner)
+				continue
+			}
 			logger.Info("Dispatching Action", "action", a.Name)
 			out, err := actioner.Action(ctx, a.Action, output.CombinedOut, a.Params, tempWorkDir)
 			if c.Debug {

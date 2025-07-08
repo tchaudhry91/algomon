@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strconv"
 
@@ -12,8 +13,7 @@ import (
 	"github.com/tchaudhry91/algomon/algochecks"
 )
 
-var ErrBucketEmpty = fmt.Errorf("Bucket Empty")
-var ErrCheckNotFound = fmt.Errorf("Check not found")
+var ErrNotFound = errors.New("not found")
 
 type BoltStore struct {
 	db     *bolt.DB
@@ -60,15 +60,15 @@ func (s *BoltStore) GetCheck(ctx context.Context, name string, key string) (outp
 	err = s.db.View(func(tx *bolt.Tx) error {
 		checksBucket := tx.Bucket([]byte("checks"))
 		if checksBucket == nil {
-			return ErrBucketEmpty
+			return ErrNotFound
 		}
 		bucket := checksBucket.Bucket([]byte(name))
 		if bucket == nil {
-			return ErrBucketEmpty
+			return ErrNotFound
 		}
 		val := bucket.Get([]byte(key))
 		if val == nil {
-			return ErrCheckNotFound
+			return ErrNotFound
 		}
 		err = json.Unmarshal(val, output)
 		if err != nil {
@@ -84,7 +84,7 @@ func (s *BoltStore) GetAllCheckNames(ctx context.Context) ([]string, error) {
 	err := s.db.View(func(tx *bolt.Tx) error {
 		checksBucket := tx.Bucket([]byte("checks"))
 		if checksBucket == nil {
-			return ErrBucketEmpty
+			return ErrNotFound
 		}
 		checksBucket.ForEach(func(k []byte, v []byte) error {
 			if v == nil {
@@ -118,14 +118,17 @@ func (s *BoltStore) GetCheckStatus(ctx context.Context, name string) (algochecks
 	err := s.db.View(func(tx *bolt.Tx) error {
 		checksBucket := tx.Bucket([]byte("checks"))
 		if checksBucket == nil {
-			return ErrBucketEmpty
+			return ErrNotFound
 		}
 		checkBucket := checksBucket.Bucket([]byte(name))
 		if checkBucket == nil {
-			return nil
+			return ErrNotFound
 		}
 		cur := checkBucket.Cursor()
 		_, v := cur.Last()
+		if v == nil {
+			return ErrNotFound
+		}
 		err := json.Unmarshal(v, &output)
 		return err
 	})
@@ -137,11 +140,11 @@ func (s *BoltStore) GetNamedCheckFailures(ctx context.Context, name string, limi
 	err = s.db.View(func(tx *bolt.Tx) error {
 		checksBucket := tx.Bucket([]byte("checks"))
 		if checksBucket == nil {
-			return ErrBucketEmpty
+			return ErrNotFound
 		}
 		checkBucket := checksBucket.Bucket([]byte(name))
 		if checkBucket == nil {
-			return nil
+			return ErrNotFound
 		}
 		cur := checkBucket.Cursor()
 		count := 0
@@ -163,6 +166,9 @@ func (s *BoltStore) GetNamedCheckFailures(ctx context.Context, name string, limi
 		}
 		return nil
 	})
+	if err == nil && len(outputs) == 0 {
+		return nil, ErrNotFound
+	}
 	return outputs, err
 }
 
@@ -171,11 +177,11 @@ func (s *BoltStore) GetNamedCheck(ctx context.Context, name string, limit int) (
 	err = s.db.View(func(tx *bolt.Tx) error {
 		checksBucket := tx.Bucket([]byte("checks"))
 		if checksBucket == nil {
-			return ErrBucketEmpty
+			return ErrNotFound
 		}
 		checkBucket := checksBucket.Bucket([]byte(name))
 		if checkBucket == nil {
-			return nil
+			return ErrNotFound
 		}
 		cur := checkBucket.Cursor()
 		count := 0
@@ -195,6 +201,9 @@ func (s *BoltStore) GetNamedCheck(ctx context.Context, name string, limit int) (
 		}
 		return nil
 	})
+	if err == nil && len(allOutputs) == 0 {
+		return nil, ErrNotFound
+	}
 	return allOutputs, err
 }
 

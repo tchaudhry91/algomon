@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"net/http"
 
@@ -66,6 +67,9 @@ func (s *APIServer) Routes() {
 func (s *APIServer) getChecksStatus(c echo.Context) error {
 	data, err := s.db.GetChecksStatus(c.Request().Context())
 	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return c.JSON(http.StatusOK, []string{})
+		}
 		return err
 	}
 	return c.JSON(http.StatusOK, data)
@@ -75,6 +79,9 @@ func (s *APIServer) getNamedCheck(c echo.Context) error {
 	name := c.Param("name")
 	data, err := s.db.GetNamedCheck(c.Request().Context(), name, 5)
 	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return c.JSON(http.StatusNotFound, map[string]string{"error": "check not found"})
+		}
 		return err
 	}
 	return c.JSON(http.StatusOK, data)
@@ -84,6 +91,9 @@ func (s *APIServer) getNamedCheckFailures(c echo.Context) error {
 	name := c.Param("name")
 	data, err := s.db.GetNamedCheckFailures(c.Request().Context(), name, 5)
 	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return c.JSON(http.StatusNotFound, map[string]string{"error": "check not found"})
+		}
 		return err
 	}
 	return c.JSON(http.StatusOK, data)
